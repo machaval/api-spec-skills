@@ -34,12 +34,12 @@ Validates OpenAPI Specification (OAS) files against comprehensive rules to ensur
 
 1. Register this repository as a marketplace:
 ```bash
-/plugin marketplace add machaval/skills
+/plugin marketplace add machaval/api-spec-skills
 ```
 
 2. Install the skills you need:
 ```bash
-/plugin install api-spec-validator@skills
+/plugin install api-spec-validator@api-spec-skills
 ```
 
 Alternatively, clone this repository and reference the skills directly in your project.
@@ -48,7 +48,7 @@ Alternatively, clone this repository and reference the skills directly in your p
 
 Clone the repository to your local machine:
 ```bash
-git clone https://github.com/machaval/skills.git
+git clone https://github.com/machaval/api-spec-skills.git
 cd skills
 ```
 
@@ -110,7 +110,7 @@ VIOLATIONS
 ## Repository Structure
 
 ```
-skills/
+api-spec-skills/
 ├── skills/
 │   └── api-spec-validator/       # API validation skill
 │       ├── SKILL.md              # Skill definition for Claude
