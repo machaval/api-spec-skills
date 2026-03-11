@@ -4,208 +4,18 @@
 
 RAML (RESTful API Modeling Language) specifications should be converted to OpenAPI Specification (OAS) format for validation and to ensure broader tool compatibility.
 
-## Conversion Tools
+## Recommended tools
 
-### Recommended Tools
+1. Anypoint CLI
 
-1. **API Transformer** (Online)
-   - URL: https://www.apimatic.io/transformer/
-   - Supports RAML 1.0/0.8 to OAS 3.0
-
-2. **RAML to OAS Converter (NPM)**
-   ```bash
-   npm install -g raml2obj oas-raml-converter
-   oas-raml-converter --from RAML --to OAS30 input.raml > output.yaml
-   ```
-
-3. **oas-raml-converter-cli**
-   ```bash
-   npm install -g oas-raml-converter-cli
-   raml-to-oas input.raml output.yaml
-   ```
-
-## Manual Conversion Mapping
-
-### Basic Structure
-
-**RAML:**
-```yaml
-#%RAML 1.0
-title: My API
-version: v1
-baseUri: https://api.example.com/{version}
+```bash
+npm install -g anypoint-cli-v4
+anypoint-cli-v4 plugins:install anypoint-cli-api-project-plugin
 ```
 
-**OAS:**
-```yaml
-openapi: 3.0.2
-info:
-  title: My API
-  version: v1
-servers:
-  - url: https://api.example.com/v1
-```
+##  Validation
 
-### Resource/Path Conversion
-
-**RAML:**
-```yaml
-/users:
-  get:
-    displayName: Get Users
-    responses:
-      200:
-        body:
-          application/json:
-            type: User[]
-```
-
-**OAS:**
-```yaml
-paths:
-  /users:
-    get:
-      operationId: getUsers
-      summary: Get Users
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-```
-
-### Data Types Conversion
-
-**RAML:**
-```yaml
-types:
-  User:
-    properties:
-      id: integer
-      name: string
-      email:
-        type: string
-        required: true
-```
-
-**OAS:**
-```yaml
-components:
-  schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        email:
-          type: string
-      required:
-        - email
-```
-
-### URI Parameters
-
-**RAML:**
-```yaml
-/users/{userId}:
-  uriParameters:
-    userId:
-      type: integer
-      description: User ID
-```
-
-**OAS:**
-```yaml
-/users/{userId}:
-  parameters:
-    - name: userId
-      in: path
-      required: true
-      schema:
-        type: integer
-      description: User ID
-```
-
-### Query Parameters
-
-**RAML:**
-```yaml
-/users:
-  get:
-    queryParameters:
-      limit:
-        type: integer
-        default: 10
-      offset:
-        type: integer
-        default: 0
-```
-
-**OAS:**
-```yaml
-/users:
-  get:
-    parameters:
-      - name: limit
-        in: query
-        schema:
-          type: integer
-          default: 10
-      - name: offset
-        in: query
-        schema:
-          type: integer
-          default: 0
-```
-
-### Traits to OAS
-
-RAML traits need to be manually applied in OAS. Common patterns:
-
-**RAML Trait:**
-```yaml
-traits:
-  pageable:
-    queryParameters:
-      page:
-        type: integer
-      size:
-        type: integer
-```
-
-**Applied in OAS:** Duplicate the parameters in each endpoint or use `$ref` to a common parameter definition:
-
-```yaml
-components:
-  parameters:
-    PageParam:
-      name: page
-      in: query
-      schema:
-        type: integer
-    SizeParam:
-      name: size
-      in: query
-      schema:
-        type: integer
-
-paths:
-  /users:
-    get:
-      parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-```
-
-## Post-Conversion Validation
-
-After converting RAML to OAS, ensure:
+Ensure each OAS to:
 
 1. **Add Operation IDs**: RAML `displayName` becomes `summary` - add proper `operationId`
 2. **Add Examples**: RAML examples may not translate - manually add request/response examples
@@ -217,7 +27,7 @@ After converting RAML to OAS, ensure:
 
 ### Issue 1: Missing Operation IDs
 **Problem:** RAML doesn't have operationId concept
-**Solution:** Add descriptive operationIds after conversion (e.g., `getUserById`, `createOrder`)
+**Solution:** Add descriptive operationIds after conversion (e.g., `getUserById`, `createOrder`) and make them unique
 
 ### Issue 2: Traits Not Converted
 **Problem:** RAML traits don't have direct OAS equivalent
@@ -246,17 +56,20 @@ After converting RAML to OAS, ensure:
 ## Example Workflow
 
 ```bash
-# 1. Convert RAML to OAS
-raml-to-oas api-spec.raml api-spec.yaml
 
-# 2. Manual enhancement
+
+# 1. Manual enhancement
 # - Add operationIds
 # - Add examples
 # - Add recovery instructions for 400 errors
 # - Add enums where appropriate
 
-# 3. Validate
-python skills/api-spec-validator/scripts/validate_spec.py api-spec.yaml
+# 2. Validate is a valid oas
+anypoint-cli-v4 api-project validate  --location=./pathToFolderWhereTheOASIs  
+
+# 3. Validate is compliant with the rules
+
+anypoint-cli-v4 api-project validate  --location=./pathToFolderWhereTheOASIs  --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
 
 # 4. Iterate based on validation report
 ```
