@@ -1,0 +1,22 @@
+{
+  "name": "api-spec-skill",
+  "owner": {
+    "name": "Mariano de Achaval",
+    "email": "achaval@gmail.com"
+  },
+  "metadata": {
+    "description": "Api Spec Skill",
+    "version": "1.0.0"
+  },
+  "plugins": [   
+    {
+      "name": "api-spec-skill",
+      "description": "Set of skills to for generating API specifications",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/api-spec-validator"
+      ]
+    }
+  ]
+}
