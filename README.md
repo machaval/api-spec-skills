@@ -19,12 +19,15 @@ This repository provides **Claude skills for API design and validation** — spe
 Validates OpenAPI Specification (OAS) files against comprehensive rules to ensure APIs are AI-agent-friendly and production-ready.
 
 **Features:**
+- **Two-Pass Validation**: First validates OAS syntax, then checks AI-agent compliance
 - Validates OAS 3.0/3.1 and Swagger 2.0 formats
 - Converts RAML specifications to OAS
 - Checks for descriptive operation IDs and comprehensive descriptions
 - Ensures proper examples, enums, and required field documentation
 - Validates error response documentation with recovery instructions
 - Provides detailed violation reports
+- **Schema Inference**: Automatically generates JSON schemas from examples
+- **Documentation Generator**: Creates markdown docs with curl examples
 
 **Learn more:** [skills/api-spec-validator/README.md](skills/api-spec-validator/README.md)
 
@@ -58,6 +61,11 @@ npm install -g anypoint-cli-v4
 anypoint-cli-v4 plugins:install anypoint-cli-api-project-plugin
 ```
 
+For the schema inference tool:
+```bash
+pip install pyyaml
+```
+
 ## Usage
 
 ### Using with Claude Code
@@ -70,19 +78,27 @@ Once installed, simply mention the skill in your requests to Claude:
 
 > "Validate the OAS file and tell me what needs to be fixed"
 
+> "Infer schemas from examples in my API spec"
+
+> "Generate documentation with curl examples from my API spec"
+
 ### Command-Line Usage
 
-#### Basic OAS Format Validation
+#### Two-Pass Validation Workflow
 
-Validate that the OAS file is syntactically correct:
+Validation should be performed in **two passes**:
+
+**Pass 1: Basic OAS Format Validation**
+
+First, validate that the OAS file is syntactically correct:
 
 ```bash
 anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas
 ```
 
-#### Full Compliance Validation
+**Pass 2: Full Compliance Validation**
 
-Validate against all AI-agent-friendly rules:
+After Pass 1 succeeds, validate against all AI-agent-friendly rules:
 
 ```bash
 anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
@@ -136,14 +152,36 @@ Claude: I'll use the api-spec-validator skill to check your specification.
 
 ### Command Line
 
-Basic validation:
+Two-pass validation workflow:
+
 ```bash
+# Pass 1: Basic validation
 anypoint-cli-v4 api-project validate --location=./specs/orders-api
+
+# Pass 2: Compliance validation (only if Pass 1 succeeds)
+anypoint-cli-v4 api-project validate --location=./specs/orders-api --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
 ```
 
-Full compliance validation:
+### Schema Inference
+
+Generate schemas from examples:
 ```bash
-anypoint-cli-v4 api-project validate --location=./specs/orders-api --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
+# Preview changes
+python3 skills/api-spec-validator/scripts/infer_schemas.py specs/orders-api/spec.yaml --dry-run
+
+# Apply changes
+python3 skills/api-spec-validator/scripts/infer_schemas.py specs/orders-api/spec.yaml
+```
+
+### Documentation Generation
+
+Create markdown documentation with curl examples:
+```bash
+# Generate to default ./docs directory
+python3 skills/api-spec-validator/scripts/generate_docs.py specs/orders-api/spec.yaml
+
+# Generate to custom directory
+python3 skills/api-spec-validator/scripts/generate_docs.py specs/orders-api/spec.yaml ./documentation
 ```
 
 ## Integration with CI/CD
@@ -172,9 +210,56 @@ jobs:
         run: |
           for spec_dir in specs/*/; do
             echo "Validating $spec_dir"
+
+            # Pass 1: Basic validation
+            echo "Pass 1: Basic OAS validation..."
+            anypoint-cli-v4 api-project validate --location="$spec_dir"
+
+            # Pass 2: Compliance validation
+            echo "Pass 2: Compliance validation..."
             anypoint-cli-v4 api-project validate --location="$spec_dir" --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
           done
 ```
+
+## Complete Workflow
+
+Here's how to use all three tools together for a complete API specification workflow:
+
+### 1. Generate Schemas from Examples
+
+If your spec has examples but missing schemas:
+```bash
+python3 skills/api-spec-validator/scripts/infer_schemas.py specs/my-api.yaml
+```
+
+### 2. Validate OAS Syntax (Pass 1)
+
+```bash
+anypoint-cli-v4 api-project validate --location=./specs/my-api
+```
+
+Fix any syntax errors before proceeding.
+
+### 3. Validate AI-Agent Compliance (Pass 2)
+
+```bash
+anypoint-cli-v4 api-project validate --location=./specs/my-api --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
+```
+
+Review and fix all violations.
+
+### 4. Generate Documentation
+
+Once your spec is compliant:
+```bash
+python3 skills/api-spec-validator/scripts/generate_docs.py specs/my-api/spec.yaml ./docs
+```
+
+Now you have:
+- ✅ Valid OAS syntax
+- ✅ AI-agent-friendly specification
+- ✅ Complete schemas with descriptions
+- ✅ Developer documentation with curl examples
 
 ## Why API Design Skills Matter
 
