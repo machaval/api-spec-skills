@@ -10,6 +10,33 @@ metadata:
 
 This skill validates OpenAPI Specification (OAS) files against a comprehensive set of rules designed to ensure API specifications are AI-agent-friendly and production-ready.
 
+## API Project structure.
+
+Every api specification should be organized as an Anypoint API Project with the following structure:
+
+```api-project/
+├── api.yaml
+├── README.md
+├── docs/
+├── exchange.json
+```
+
+Exchange.json needs to have the following shape:
+```json
+{
+    "main": "api.yaml",
+    "name": "<name-of-the-api>",
+    "organizationId": "8bfc8bbf-5508-419e-aadc-77dfe18a8172",
+    "groupId": "f1e97bc6-315a-4490-82a7-23abe036327a.anypoint-platform",
+    "assetId": "<same-as-the-folder>",
+    "version": "<any-semver-version default 1.0.0>",    
+    "apiVersion": "v1",
+    "classifier": "oas",
+    "dependencies": [],    
+    "originalFormatVersion": "3.0"
+}
+```
+
 ## When to Use This Skill
 
 Use this skill when:
@@ -26,7 +53,7 @@ All API specifications must be written in OpenAPI Specification (OAS) format. Su
 - OAS 3.1.x
 - Swagger 2.0 (legacy support)
 
-**RAML Translation**: If the API specification is written in RAML format, translate it to OAS before validation. Use conversion tools or manual translation to ensure all RAML features are properly represented in OAS format.
+**Translation**: All APIs should be written in OAS 3 or bigger and in yaml. 
 
 ### Rule 2: Operation IDs Required
 Every endpoint operation must have an `operationId` that is:
