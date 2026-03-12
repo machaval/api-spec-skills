@@ -10,8 +10,11 @@ This skill provides both automated and manual validation capabilities for API sp
 
 ### Prerequisites
 
+Install the Anypoint CLI tool and API project plugin:
+
 ```bash
-pip install pyyaml
+npm install -g anypoint-cli-v4
+anypoint-cli-v4 plugins:install anypoint-cli-api-project-plugin
 ```
 
 ### Usage with Claude
@@ -38,41 +41,41 @@ This skill is automatically available when working in this project. Simply ask C
 
 ## Command-Line Usage
 
-### Validate a spec file
+### Basic OAS Format Validation
+
+Validate that the OAS file is syntactically correct:
 
 ```bash
-python skills/api-spec-validator/scripts/validate_spec.py path/to/your-api-spec.yaml
+anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas
+```
+
+### Full Compliance Validation
+
+Validate against all AI-agent-friendly rules:
+
+```bash
+anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
 ```
 
 ### Example output
 
 ```
-======================================================================
-API SPEC VALIDATION REPORT
-======================================================================
+Validating API specification...
 
-Spec: path/to/your-api-spec.yaml
-Total Endpoints: 5
-Violations Found: 3
-Pass Rate: 85.7%
+✓ OAS Format: Valid OpenAPI 3.0.2
+✓ Operation IDs: All operations have descriptive IDs
 
-----------------------------------------------------------------------
-VIOLATIONS
-----------------------------------------------------------------------
+⚠ Violations found:
 
-### Rule 2: Operation ID Quality
-    (1 violation)
-  ❌ GET /users
-     operationId 'get_data' is too generic. Use descriptive names like 'calculateTaxRate'
+1. operation-id-camel-case
+   - GET /users: operationId 'get_data' must be in camelCase
+   - Use descriptive names like 'getUserProfile'
 
-### Rule 7: No Naked Strings
-    (2 violations)
-  ⚠️  POST /orders (request)
-     Property 'status' appears to have limited options but missing enum
+2. no-naked-strings
+   - POST /orders (request): Property 'status' must have enum
+   - Avoid naked strings with no constraints
 
-======================================================================
-✅ VALIDATION PASSED (warnings only)
-======================================================================
+Validation completed with 2 violations
 ```
 
 ## Examples
@@ -121,16 +124,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: pip install pyyaml
+          node-version: '18'
+      - name: Install Anypoint CLI
+        run: |
+          npm install -g anypoint-cli-v4
+          anypoint-cli-v4 plugins:install anypoint-cli-api-project-plugin
       - name: Validate specs
         run: |
-          for spec in specs/*.yaml; do
-            python skills/api-spec-validator/scripts/validate_spec.py "$spec"
+          for spec_dir in specs/*/; do
+            echo "Validating $spec_dir"
+            anypoint-cli-v4 api-project validate --location="$spec_dir" --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
           done
 ```
 
@@ -139,9 +145,25 @@ jobs:
 To add new validation rules:
 
 1. Update `SKILL.md` with the new rule description
-2. Add validation logic to `validate_spec.py` in the `OASValidator` class
+2. Add validation logic to `ruleset.yaml` using AMF Validation Profile format
 3. Add examples to the reference files
 4. Test against both good and bad specs
+
+### AMF Validation Profile Format
+
+The `ruleset.yaml` uses the AMF Validation Profile format. Example rule:
+
+```yaml
+validations:
+  my-custom-rule:
+    message: Error message for {{property}}
+    documentation: |
+      Detailed explanation of the rule
+    targetClass: apiContract.Operation
+    propertyConstraints:
+      core.description:
+        minCount: 1
+```
 
 ## License
 

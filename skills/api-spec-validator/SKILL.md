@@ -182,15 +182,36 @@ required:
 
 ## Validation Process
 
-### Automated Validation
+### Prerequisites
 
-Use the bundled Python validation script for programmatic checking:
+Install the Anypoint CLI tool and API project plugin:
 
 ```bash
-python skills/api-spec-validator/scripts/validate_spec.py <path-to-spec.yaml>
+npm install -g anypoint-cli-v4
+anypoint-cli-v4 plugins:install anypoint-cli-api-project-plugin
 ```
 
-The script will:
+### Automated Validation
+
+#### Basic OAS Format Validation
+
+To validate that the OAS file is syntactically correct:
+
+```bash
+anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas
+```
+
+This validates the OpenAPI specification structure and syntax.
+
+#### Full Compliance Validation
+
+To validate against all AI-agent-friendly rules:
+
+```bash
+anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
+```
+
+This will:
 1. Parse the OAS file
 2. Check all validation rules
 3. Generate a detailed report with violations
@@ -198,7 +219,7 @@ The script will:
 
 ### Manual Review
 
-When reviewing specs manually:
+When reviewing specs manually, use the validation tool or check:
 1. Check if spec is in RAML format - if so, translate to OAS first
 2. Check each endpoint has `operationId`, `description`, and examples
 3. Verify operation IDs are descriptive (not generic)
@@ -209,6 +230,16 @@ When reviewing specs manually:
 8. Ensure all string fields with limited options use `enum`
 9. Verify all schemas have explicit `required` arrays
 10. Confirm all properties have meaningful descriptions
+
+### Running Validation with Claude
+
+Simply ask Claude to validate your spec:
+
+```
+"Validate my API spec at path/to/api-spec.yaml"
+"Check this OpenAPI specification for AI-agent compliance"
+"Review my OAS file at specs/my-api.yaml"
+```
 
 ## Best Practices
 
@@ -235,32 +266,31 @@ When authoring or reviewing specs, optimize for AI agent consumption:
 
 ## Output Format
 
-When validating, provide a report structured as:
+When validating with `anypoint-cli-v4`, the tool provides a structured report:
 
-```markdown
-# API Spec Validation Report
-
-## Summary
-- Total Endpoints: X
-- Violations Found: Y
-- Pass Rate: Z%
-
-## Violations
-
-### Rule 2: Missing/Generic Operation IDs
-- GET /users/{id} - Missing operationId
-- POST /data - operationId "post_data" is too generic
-
-### Rule 7: Naked Strings
-- /orders POST request.status - should use enum instead of string
-
-### Rule 8: Missing Required Fields
-- /users POST - schema missing required array
-
-## Passed
-- Rule 1: Valid OAS 3.0.2 format ✓
-- Rule 4: All endpoints have examples ✓
 ```
+Validating API specification...
+
+✓ oas-only: Valid OpenAPI 3.0.2 format
+✓ operation-examples: All operations have examples
+
+⚠ Violations found:
+
+1. operation-id-camel-case
+   - GET /users: operationId 'get_data' must be in camelCase
+   - Use descriptive names like 'getUserProfile' or 'calculateTaxRate'
+
+2. no-naked-strings
+   - POST /orders (request): Property 'status' must have enum
+   - Avoid naked strings with no constraints
+
+3. schema-required-block
+   - POST /users: Schema must explicitly list required fields
+
+Validation completed with 3 violations
+```
+
+When summarizing results for users, organize by rule type and provide actionable fixes.
 
 ## References
 

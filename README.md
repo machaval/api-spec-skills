@@ -49,12 +49,13 @@ Alternatively, clone this repository and reference the skills directly in your p
 Clone the repository to your local machine:
 ```bash
 git clone https://github.com/machaval/api-spec-skills.git
-cd skills
+cd api-spec-skills
 ```
 
-Install Python dependencies for the validation script:
+Install the Anypoint CLI tool and API project plugin:
 ```bash
-pip install pyyaml
+npm install -g anypoint-cli-v4
+anypoint-cli-v4 plugins:install anypoint-cli-api-project-plugin
 ```
 
 ## Usage
@@ -71,40 +72,40 @@ Once installed, simply mention the skill in your requests to Claude:
 
 ### Command-Line Usage
 
-Run the validation script directly:
+#### Basic OAS Format Validation
+
+Validate that the OAS file is syntactically correct:
 
 ```bash
-python skills/api-spec-validator/scripts/validate_spec.py path/to/your-spec.yaml
+anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas
+```
+
+#### Full Compliance Validation
+
+Validate against all AI-agent-friendly rules:
+
+```bash
+anypoint-cli-v4 api-project validate --location=./path/to/folder/with/oas --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
 ```
 
 Example output:
 ```
-======================================================================
-API SPEC VALIDATION REPORT
-======================================================================
+Validating API specification...
 
-Spec: api-spec.yaml
-Total Endpoints: 5
-Violations Found: 3
-Pass Rate: 85.7%
+✓ OAS Format: Valid OpenAPI 3.0.2
+✓ Operation IDs: All operations have descriptive IDs
 
-----------------------------------------------------------------------
-VIOLATIONS
-----------------------------------------------------------------------
+⚠ Violations found:
 
-### Rule 2: Operation ID Quality
-    (1 violation)
-  ❌ GET /users
-     operationId 'get_data' is too generic
+1. operation-id-camel-case
+   - GET /users: operationId 'get_data' must be in camelCase
+   - Use descriptive names like 'getUserProfile'
 
-### Rule 7: No Naked Strings
-    (2 violations)
-  ⚠️  POST /orders (request)
-     Property 'status' missing enum
+2. no-naked-strings
+   - POST /orders (request): Property 'status' must have enum
+   - Avoid naked strings with no constraints
 
-======================================================================
-✅ VALIDATION PASSED (warnings only)
-======================================================================
+Validation completed with 2 violations
 ```
 
 ## Repository Structure
@@ -127,7 +128,7 @@ api-spec-skills/
 ### With Claude Code
 
 ```
-You: Validate my API spec at specs/orders-api.yaml
+You: Validate my API spec at specs/orders-api/
 
 Claude: I'll use the api-spec-validator skill to check your specification.
 [Runs validation and provides detailed report with violations and fixes]
@@ -135,8 +136,14 @@ Claude: I'll use the api-spec-validator skill to check your specification.
 
 ### Command Line
 
+Basic validation:
 ```bash
-python skills/api-spec-validator/scripts/validate_spec.py specs/orders-api.yaml
+anypoint-cli-v4 api-project validate --location=./specs/orders-api
+```
+
+Full compliance validation:
+```bash
+anypoint-cli-v4 api-project validate --location=./specs/orders-api --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
 ```
 
 ## Integration with CI/CD
@@ -153,16 +160,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: pip install pyyaml
+          node-version: '18'
+      - name: Install Anypoint CLI
+        run: |
+          npm install -g anypoint-cli-v4
+          anypoint-cli-v4 plugins:install anypoint-cli-api-project-plugin
       - name: Validate specs
         run: |
-          for spec in specs/*.yaml; do
-            python skills/api-spec-validator/scripts/validate_spec.py "$spec"
+          for spec_dir in specs/*/; do
+            echo "Validating $spec_dir"
+            anypoint-cli-v4 api-project validate --location="$spec_dir" --local-ruleset skills/api-spec-validator/scripts/ruleset.yaml
           done
 ```
 
@@ -191,7 +201,7 @@ Contributions are welcome! To add new validation rules or skills:
 
 For API Spec Validator improvements:
 1. Update `skills/api-spec-validator/SKILL.md` with new rules
-2. Add validation logic to `validate_spec.py`
+2. Add validation logic to `ruleset.yaml` (AMF Validation Profile format)
 3. Add examples to reference files
 4. Update documentation
 
